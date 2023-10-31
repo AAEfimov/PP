@@ -67,12 +67,13 @@ mz = _ModelZooUrls()
 print("\n".join(list(mz.CONFIG_PATH_TO_URL_SUFFIX.keys())))
 
 
-dataset_directory = "PP"
+dataset_directory = "./"
 content = os.listdir(dataset_directory)
 print(content)
 
 
 dataset_catalog_name = "stone_train"
+dataset_catalog_name_val = "stone_val"
 
 try:
     DatasetCatalog.pop(dataset_catalog_name)
@@ -89,7 +90,10 @@ def get_stone_dict(fp):
   for img in data['images']:
     record = {}
 
-    filename = os.path.join(fp, img["file_name"])
+    filename = os.path.basename(img["file_name"]).replace(":", "_")
+    filename = os.path.join(fp, filename)
+
+    print(filename)
 
     record["file_name"] = filename
     record["image_id"] = img['id']
@@ -117,20 +121,26 @@ def get_stone_dict(fp):
 
   return dataset_dicts
 
-traint_dataset_pwd = dataset_directory + "/train/"
-
+# traint_dataset_pwd = dataset_directory + "/train/"
 # print(get_stone_dict(traint_dataset_pwd))
 
 
 traint_dataset_pwd = dataset_directory + "/train/"
+traint_dataset_val_pwd = dataset_directory + "/val/"
+
 
 try:
     DatasetCatalog.register(dataset_catalog_name, lambda : get_stone_dict(traint_dataset_pwd))
 except:
     print(f'Probably data {traint_dataset_pwd} have been already registred')
 
-MetadataCatalog.get(dataset_catalog_name).set(thing_classes=["stone"])
+try:
+    DatasetCatalog.register(dataset_catalog_name_val, lambda : get_stone_dict(traint_dataset_val_pwd))
+except:
+    print(f'Probably data {traint_dataset_val_pwd} have been already registred')
 
+MetadataCatalog.get(dataset_catalog_name).set(thing_classes=["stone"])
+MetadataCatalog.get(dataset_catalog_name_val).set(thing_classes=["stone"])
 
 stone_metadata = MetadataCatalog.get("stone_train")
 dataset_dicts    = get_stone_dict(traint_dataset_pwd)
@@ -140,13 +150,15 @@ print(stone_metadata.as_dict())
 print('N Train',len(dataset_dicts))
 print(dataset_dicts)
 
+val_dict = get_stone_dict(traint_dataset_val_pwd)
 
-for d in random.sample(dataset_dicts, 2):
+for d in random.sample(val_dict, 2):
     img   = Image.open(d["file_name"])
     _,axs = plt.subplots(1,2,figsize=(12,8))
     axs[0].imshow(img); axs[0].axis('off')
     visualizer = Visualizer(img, metadata=stone_metadata, scale=1)
-    print(d)
     out = visualizer.draw_dataset_dict(d)
     axs[1].imshow(out.get_image()); axs[1].axis('off')
     plt.tight_layout();plt.show()
+
+
